@@ -1,0 +1,51 @@
+package thread.lock.test;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
+
+/**
+ * 
+ *轮询锁
+ */
+public class TryLockTest2 implements Runnable{
+	public static final int MAX_RETRY = Runtime.getRuntime().availableProcessors() > 1 ? 64 : 1;
+	private final ReentrantLock lock = new ReentrantLock();
+
+	@Override
+	public void run() {
+		try {
+			int retry = 0;
+			while(!lock.tryLock()){
+				if(retry++ > MAX_RETRY){
+					lock.lock();
+					System.err.println(Thread.currentThread().getName()+"阻塞式获取锁！");
+					break;
+				}
+			}
+			if(lock.isHeldByCurrentThread()){
+				System.err.println(Thread.currentThread().getName()+ " 获得锁");
+				Thread.sleep(3000l);
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}finally {
+			if(lock.isHeldByCurrentThread()){
+				lock.unlock();
+				System.err.println(Thread.currentThread().getName()+ " 释放锁!");
+			}
+		}
+	}
+	
+	
+	
+	public static void main(String[] args) {
+		TryLockTest2 test = new TryLockTest2();
+		Thread t1 = new Thread(test);
+		Thread t2 = new Thread(test);
+		t1.setName("t1");
+		t2.setName("t2");
+		
+		t1.start();
+		t2.start();
+	}
+}
